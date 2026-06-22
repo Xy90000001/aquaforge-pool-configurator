@@ -1,24 +1,19 @@
-import { useRef, Suspense } from 'react';
-import { useFrame } from '@react-three/fiber';
-import { Environment, Sky, ContactShadows, Float } from '@react-three/drei';
-import { EffectComposer, Bloom, Vignette, DepthOfField } from '@react-three/postprocessing';
-import * as THREE from 'three';
+import { Suspense } from 'react';
+import { Sky, ContactShadows } from '@react-three/drei';
+import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import PoolModel from './PoolModel';
 import WaterSurface from './WaterSurface';
 import PatioDeck from './PatioDeck';
 import { usePoolConfig } from '../hooks/usePoolConfig';
 
-function SceneLighting() {
-  const sunRef = useRef();
-
+function Lighting() {
   return (
     <>
-      <ambientLight intensity={0.4} color="#8899cc" />
+      <ambientLight intensity={1.2} color="#c8d8f0" />
       <directionalLight
-        ref={sunRef}
-        position={[20, 18, 10]}
-        intensity={6}
-        color="#fff5e8"
+        position={[18, 22, 10]}
+        intensity={8}
+        color="#fff8ee"
         castShadow
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
@@ -27,50 +22,37 @@ function SceneLighting() {
         shadow-camera-right={30}
         shadow-camera-top={30}
         shadow-camera-bottom={-30}
-        shadow-bias={-0.0005}
+        shadow-bias={-0.0004}
         shadow-normalBias={0.02}
       />
-      <directionalLight position={[-8, 4, -6]} intensity={1.8} color="#8899cc" />
-      <directionalLight position={[0, 6, -10]} intensity={2} color="#aaccff" />
+      <directionalLight position={[-8, 5, -6]} intensity={3} color="#b0c8ee" />
+      <directionalLight position={[0, 3, -10]} intensity={1.5} color="#d0e0ff" />
+      <hemisphereLight
+        args={['#88aacc', '#443322', 0.6]}
+      />
     </>
   );
 }
 
-function UnderwaterLight({ length, width, depth }) {
+function UnderwaterLights({ length, width, depth }) {
   const L = length * 0.3048;
   const W = width * 0.3048;
   const D = depth * 0.3048;
-  const halfL = L / 2 - 0.5;
-  const halfW = W / 2 - 0.5;
 
   return (
     <>
       <pointLight
-        position={[-halfL * 0.5, -D + 0.3, -halfW * 0.5]}
-        intensity={2}
+        position={[-L * 0.3, -D + 0.4, -W * 0.3]}
+        intensity={2.5}
         color="#44ccff"
-        distance={D * 2}
+        distance={D * 2.5}
         decay={2}
       />
       <pointLight
-        position={[halfL * 0.5, -D + 0.3, halfW * 0.5]}
-        intensity={2}
+        position={[L * 0.3, -D + 0.4, W * 0.3]}
+        intensity={2.5}
         color="#44ccff"
-        distance={D * 2}
-        decay={2}
-      />
-      <pointLight
-        position={[-halfL * 0.5, -D + 0.3, halfW * 0.5]}
-        intensity={1.5}
-        color="#44aaff"
-        distance={D * 2}
-        decay={2}
-      />
-      <pointLight
-        position={[halfL * 0.5, -D + 0.3, -halfW * 0.5]}
-        intensity={1.5}
-        color="#44aaff"
-        distance={D * 2}
+        distance={D * 2.5}
         decay={2}
       />
     </>
@@ -80,25 +62,27 @@ function UnderwaterLight({ length, width, depth }) {
 function PoolLadder({ length, depth }) {
   const L = length * 0.3048;
   const D = depth * 0.3048;
-  const ladderMat = new THREE.MeshStandardMaterial({
-    color: '#c0c4c8',
+
+  const railMat = new THREE.MeshStandardMaterial({
+    color: '#d0d4d8',
     roughness: 0.25,
     metalness: 0.85,
   });
 
-  const rails = [];
-  for (let i = 0; i < 5; i++) {
-    const y = -(i + 1) * 0.35;
-    if (y < -D) break;
-    rails.push(
-      <mesh key={i} position={[L / 2 - 0.8, y + 0.05, 1.2]} castShadow>
-        <capsuleGeometry args={[0.04, 0.8, 8, 16]} />
-        <primitive object={ladderMat} attach="material" />
-      </mesh>
-    );
-  }
-
-  return <group>{rails}</group>;
+  return (
+    <group>
+      {Array.from({ length: 6 }).map((_, i) => {
+        const y = -(i + 1) * 0.35;
+        if (y < -D + 0.1) return null;
+        return (
+          <mesh key={i} position={[L / 2 - 1.0, y + 0.1, 1.0]} castShadow>
+            <capsuleGeometry args={[0.04, 0.8, 8, 16]} />
+            <primitive object={railMat} attach="material" />
+          </mesh>
+        );
+      })}
+    </group>
+  );
 }
 
 function SceneContent() {
@@ -108,26 +92,34 @@ function SceneContent() {
 
   return (
     <>
-      <SceneLighting />
+      <Lighting />
 
       <Sky
         distance={450000}
-        sunPosition={[20, 18, 10]}
-        inclination={0.6}
+        sunPosition={[18, 22, 10]}
+        inclination={0.55}
         azimuth={0.25}
-        turbidity={8}
-        rayleigh={2}
+        turbidity={6}
+        rayleigh={3}
       />
 
-      <Environment
-        preset="sunset"
-        background={false}
-        environmentIntensity={0.4}
+      {/* Ground */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow>
+        <planeGeometry args={[80, 80]} />
+        <meshStandardMaterial color="#8a9a6a" roughness={0.9} />
+      </mesh>
+
+      <ContactShadows
+        position={[0, -0.01, 0]}
+        opacity={0.45}
+        scale={30}
+        blur={3}
+        far={12}
       />
 
       <PoolModel dims={dims} shellOption={shellOption} />
       <PoolLadder length={dims.pool_length} depth={dims.pool_depth} />
-      <UnderwaterLight
+      <UnderwaterLights
         length={dims.pool_length}
         width={dims.pool_width}
         depth={dims.pool_depth}
@@ -144,26 +136,28 @@ function SceneContent() {
         option={patioOption}
       />
 
-      <ContactShadows
-        position={[0, -0.01, 0]}
-        opacity={0.5}
-        scale={30}
-        blur={2.5}
-        far={10}
-      />
-
-      {/* Decorative elements */}
-      <Float speed={1.5} rotationIntensity={0.2} floatIntensity={0.3}>
-        <mesh position={[length * 0.3048 / 2 + 4, 0.15, 2]} castShadow>
-          <sphereGeometry args={[0.5, 32, 32]} />
-          <meshStandardMaterial color="#8bbf8a" roughness={0.7} />
+      {/* Decorative: lounge chairs */}
+      <group position={[-(dims.pool_length * 0.3048) / 2 - 2.5, 0.01, 2.5]}>
+        <mesh castShadow>
+          <boxGeometry args={[2.0, 0.08, 0.7]} />
+          <meshStandardMaterial color="#d4c4a8" roughness={0.5} />
         </mesh>
-      </Float>
+        <mesh position={[0, 0.3, -0.4]} castShadow>
+          <boxGeometry args={[1.8, 0.06, 0.5]} />
+          <meshStandardMaterial color="#d4c4a8" roughness={0.5} />
+        </mesh>
+      </group>
 
-      <mesh position={[-(length * 0.3048 / 2) - 3, 0.15, -2]} receiveShadow castShadow>
-        <cylinderGeometry args={[0.3, 0.4, 1.2, 32]} />
-        <meshStandardMaterial color="#c4a882" roughness={0.5} />
-      </mesh>
+      <group position={[(dims.pool_length * 0.3048) / 2 + 2.5, 0.01, -2.0]}>
+        <mesh castShadow>
+          <boxGeometry args={[2.0, 0.08, 0.7]} />
+          <meshStandardMaterial color="#c8b898" roughness={0.5} />
+        </mesh>
+        <mesh position={[0, 0.3, -0.4]} castShadow>
+          <boxGeometry args={[1.8, 0.06, 0.5]} />
+          <meshStandardMaterial color="#c8b898" roughness={0.5} />
+        </mesh>
+      </group>
     </>
   );
 }
@@ -173,13 +167,8 @@ export default function Scene() {
     <Suspense fallback={null}>
       <SceneContent />
       <EffectComposer>
-        <Bloom
-          luminanceThreshold={0.85}
-          luminanceSmoothing={0.9}
-          intensity={0.3}
-          radius={0.5}
-        />
-        <Vignette darkness={0.4} offset={0.3} />
+        <Bloom luminanceThreshold={0.8} luminanceSmoothing={0.9} intensity={0.25} radius={0.5} />
+        <Vignette darkness={0.3} offset={0.3} />
       </EffectComposer>
     </Suspense>
   );

@@ -16,9 +16,14 @@ function LoadingOverlay() {
   return (
     <div className="loading-overlay">
       <div className="loading-ring" />
-      <div className="loading-text">INITIALIZING CONFIGURATOR</div>
+      <div className="loading-text">Initializing Configurator</div>
     </div>
   );
+}
+
+function PoolDims() {
+  const { dims } = usePoolConfig();
+  return <span>{dims.pool_length}′ × {dims.pool_width}′ × {dims.pool_depth}′</span>;
 }
 
 function Canvas3D() {
@@ -45,6 +50,8 @@ function Canvas3D() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
+  const cameraTarget = [0, -1.2, 0];
+
   return (
     <div className="canvas-container">
       <div className="viewport-overlay">
@@ -59,39 +66,35 @@ function Canvas3D() {
 
       <Canvas
         shadows
-        camera={{ position: [16, 10, 18], fov: 42, near: 0.5, far: 150 }}
+        camera={{
+          position: [20, 12, 20],
+          fov: 40,
+          near: 0.3,
+          far: 150,
+        }}
         gl={{
           antialias: true,
-          toneMapping: 3, // ACESFilmic
-          toneMappingExposure: 1.1,
+          toneMapping: 3,
+          toneMappingExposure: 1.0,
           outputColorSpace: 'srgb',
         }}
       >
         <Suspense fallback={null}>
           <Scene />
           <OrbitControls
-            target={[0, -1.5, 0]}
-            minDistance={6}
-            maxDistance={45}
-            maxPolarAngle={Math.PI * 0.5}
-            minPolarAngle={0.2}
+            target={cameraTarget}
+            minDistance={5}
+            maxDistance={50}
+            maxPolarAngle={Math.PI * 0.48}
+            minPolarAngle={0.15}
             enableDamping
             dampingFactor={0.08}
             autoRotate
-            autoRotateSpeed={0.3}
+            autoRotateSpeed={0.25}
           />
         </Suspense>
       </Canvas>
     </div>
-  );
-}
-
-function PoolDims() {
-  const { dims } = usePoolConfig();
-  return (
-    <span>
-      {dims.pool_length}′ × {dims.pool_width}′ × {dims.pool_depth}′
-    </span>
   );
 }
 
